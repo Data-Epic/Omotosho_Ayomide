@@ -1,14 +1,22 @@
 import gspread
 import pandas as pd
-from dotenv_vault import load_dotenv
+from dotenv import load_dotenv
 import os 
+import logging
 
 load_dotenv()
 API_key =  os.getenv('Project_key')
 
+#create a connection
 gc = gspread.service_account(API_key)
+
+#read the data to be loaded
 df = pd.read_csv("fileasa.csv")
+
+#open the spreadsheet
 spreadsheet = gc.open("Gspread practice")
+
+logging.basicConfig(level=logging.INFO)
 
 def get_or_create_worksheet(spreadsheet, Ecom , rows=1, cols=1):
     '''
@@ -23,8 +31,10 @@ def get_or_create_worksheet(spreadsheet, Ecom , rows=1, cols=1):
     '''
     try:
         worksheet = spreadsheet.worksheet(Ecom)
+        logging.info("This worksheet already exist")
     except:
         worksheet = spreadsheet.add_worksheet(Ecom, rows, cols)
+        logging.info("The worksheet was not found, a new one will be created")
     return worksheet
 
 def populate_worksheet(Ecom):
@@ -35,10 +45,7 @@ def populate_worksheet(Ecom):
     '''
     worksheet = get_or_create_worksheet(spreadsheet, Ecom, rows=df.shape[0]+1, cols=df.shape[1])
     worksheet.update([df.columns.values.tolist()] + df.values.tolist())
+    logging.info("The data has been successfully loaded into the spreadsheet")
 
 
 populate_worksheet("Ecommerce store")
-
-#Prints the worksheet in the spreadsheet to check if the worksheet("Ecommerce store") has been created
-worksheet_list = spreadsheet.worksheets()
-print(worksheet_list)
