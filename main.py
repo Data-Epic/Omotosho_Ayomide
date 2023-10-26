@@ -1,31 +1,35 @@
 import gspread
-import pandas as pd
 from pandas import json_normalize
 from dotenv import load_dotenv
-import os 
+import os
 import logging
 import requests
 import json
 import datetime as dt
 
-# access keys using dotenv
-load_dotenv()
-gspread_key =  os.getenv('Project_key')
-Weather_API = os.getenv('API_key')
+def main():
+    # Access keys using dotenv
+    load_dotenv()
+    GSPREAD_KEY = os.getenv('PROJECT_KEY')
+    WEATHER_API = os.getenv('API_KEY')
 
-#create a connection
-gc = gspread.service_account(gspread_key)
-spreadsheet = gc.open("Gspread practice")
+    # Create a connection to the Google Sheets
+    gc = gspread.service_account(GSPREAD_KEY)
+    spreadsheet = gc.open("Gspread practice")
 
-logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO)
 
+    with open(WEATHER_API) as json_data_file:
+        config = json.load(json_data_file)
 
-with open(Weather_API) as json_data_file:
-    config = json.load(json_data_file)
+    payload = {'Key': config['Key'], 'q': 'alakia', 'aqi': 'no'}
+    r = requests.get("http://api.weatherapi.com/v1/current.json", params=payload)
 
+    df = pass_json_into_df(r)
 
-payload = {'Key': config['Key'], 'q': 'berlin', 'aqi': 'no'}
-r = requests.get("http://api.weatherapi.com/v1/current.json", params=payload)
+    populate_worksheet("Weather", spreadsheet, df)
+    return spreadsheet, r
+
 
 def pass_json_into_df(r):
     '''
@@ -72,14 +76,13 @@ def get_or_create_worksheet(spreadsheet, ecom , rows=1, cols=1):
         logging.info("The worksheet was not found, a new one will be created")
     return worksheet
 
-def populate_worksheet(ecom):
+def populate_worksheet(ecom, spreadsheet, df):
     '''
     This function appends the values of a dataframe to the next available row in a worksheet.
     
     :param ecom: The title of the worksheet to populate.
     '''
-    worksheet = get_or_create_worksheet(spreadsheet, ecom)
-    df = pass_json_into_df(r)
+    worksheet = get_or_create_worksheet(spreadsheet,ecom)
     # Find the next available row for data insertion.
     next_row = len(worksheet.get_all_values()) + 1  # +1 to append to the next row
     
@@ -95,4 +98,6 @@ def populate_worksheet(ecom):
     
     logging.info("The data has been successfully loaded into the spreadsheet")
 
-populate_worksheet("Weather")
+
+if __name__ == "__main__":
+    main()

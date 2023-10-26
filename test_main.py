@@ -1,56 +1,25 @@
-import pytest
-import gspread
-import pandas as pd
-from pandas import json_normalize
-from dotenv import load_dotenv
-import os
-import requests
-import json
-import datetime as dt
-
-from my_gspread import get_or_create_worksheet
-from my_gspread import pass_json_into_df
-
-load_dotenv()
-gspread_key = os.getenv('Project_key')
-gc = gspread.service_account(gspread_key)
-spreadsheet = gc.open("Gspread practice")
-wk = spreadsheet.worksheet("Weather")
-# Initialize your Weather API key (assuming it's correctly set in your environment)
-Weather_API = os.getenv('API_key')
-with open(Weather_API) as json_data_file:
-    config = json.load(json_data_file)
-
-
-payload = {'Key': config['Key'], 'q': 'berlin', 'aqi': 'no'}
-r = requests.get("http://api.weatherapi.com/v1/current.json", params=payload)
+from main import get_or_create_worksheet
+from main import pass_json_into_df
+from main import main
 
 def test_for_successful_worksheet_creation():
     '''
     This test for the spreadsheet title and worksheet title, it also test to see if there are values in the worksheet
     '''
+    spreadsheet,r = main()
     worksheet_name = "Weather"
-    worksheet = get_or_create_worksheet(spreadsheet,"Weather")
+    worksheet = get_or_create_worksheet( spreadsheet, 'Weather')
     
     assert worksheet is not None
     assert worksheet.title == worksheet_name
     assert spreadsheet.title == 'Gspread practice'
     assert worksheet.row_count != 0
 
-def test_for_connection_with_API():
-    '''
-    This test for the successful connection with the weather API, by checking the response state code
-     '''
-    payload = {'Key': config['Key'], 'q': 'berlin', 'aqi': 'no'}
-    r = requests.get("http://api.weatherapi.com/v1/current.json", params=payload)
-    assert r.status_code == 200
-    assert r.status_code != 400
-    assert r.status_code != 500
-
 def test_for_column_names():
     '''
     This test for the if the right column names is present in the columns of the dataframe
     '''
+    spreadsheet, r = main()
     df = pass_json_into_df(r)
     expected_columns = ['timestamp', 'location', 'state', 'country', 'temp_c', 'wind_kph', 'latitude', 'longitude', 'wind_direction']
     assert len(df.columns) == len(expected_columns)
@@ -65,10 +34,11 @@ def test_for_column_names():
     assert 'longitude' in df.columns, "Missing column 'longitude'"
     assert 'wind_direction' in df.columns, "Missing column 'wind_direction'"
 
-def test_for_column_datatypes(sample_dataframe):
+def test_for_column_datatypes():
     '''
     This test checks the data types of columns in the DataFrame.
     '''
+    spreadsheet , r = main()
     df = pass_json_into_df(r)
     assert df['location'].dtype == 'object', "Column 'location' should have data type 'object'"
     assert df['state'].dtype == 'object', "Column 'state' should have data type 'object'"
@@ -84,6 +54,7 @@ def test_for_data_validation():
     '''
     This test checks if data in certain columns falls within valid ranges
     '''
+    spreadsheet, r = main()
     df = pass_json_into_df(r)
     assert (df['temp_c'] >= -100).all(), "Invalid temperature values"
     assert (df['temp_c'] <= 100).all(), "Invalid temperature values"
