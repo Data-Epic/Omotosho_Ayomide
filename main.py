@@ -22,7 +22,7 @@ def main():
     with open(WEATHER_API) as json_data_file:
         config = json.load(json_data_file)
 
-    payload = {'Key': config['Key'], 'q': 'alakia', 'aqi': 'no'}
+    payload = {'Key': config['Key'], 'q' : input("Enter your location here: "), 'aqi': 'no'}
     r = requests.get("http://api.weatherapi.com/v1/current.json", params=payload)
 
     df = pass_json_into_df(r)
